@@ -11,3 +11,21 @@ export function getDb() {
 
   return drizzle(env.DB, { schema });
 }
+
+export function getD1() {
+  if (!env.DB) {
+    throw new Error("Cloudflare D1 binding `DB` is unavailable.");
+  }
+  return env.DB;
+}
+
+export function getJwtSecret() {
+  const runtimeEnv = env as unknown as { JWT_SECRET?: string };
+  const secret =
+    runtimeEnv.JWT_SECRET ??
+    "local-development-only-secret-change-before-production-2026";
+  if (secret.length < 32) {
+    throw new Error("JWT_SECRET must contain at least 32 characters.");
+  }
+  return secret;
+}

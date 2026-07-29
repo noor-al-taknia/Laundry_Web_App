@@ -11,28 +11,28 @@ export async function generateMetadata(): Promise<Metadata> {
   const protocol =
     requestHeaders.get("x-forwarded-proto") ||
     (host.startsWith("localhost") ? "http" : "https");
-  const ogImage = `${protocol}://${host}/og.png`;
+  const ogImage = `${protocol}://${host}/og-v2.png`;
 
   return {
-    title: "Pearl Laundry · Saudi VAT Invoice",
+    title: "Pearl Laundry · Shop Operations",
     description:
-      "Create, preview, QR-code, and print Saudi ZATCA Phase 1 laundry tax invoices.",
+      "Secure laundry billing, customers, payments, catalog management, and reports for shop owners and staff.",
     icons: {
       icon: "/favicon.svg",
       shortcut: "/favicon.svg",
     },
     openGraph: {
-      title: "Pearl Laundry · Tax Invoice Studio",
+      title: "Pearl Laundry · Shop Operations",
       description:
-        "A browser-based Saudi VAT invoice generator with ZATCA Phase 1 QR codes.",
+        "Secure billing, customers, payments, reports, and service management for a modern laundry shop.",
       type: "website",
       images: [{ url: ogImage, width: 1735, height: 907 }],
     },
     twitter: {
       card: "summary_large_image",
-      title: "Pearl Laundry · Tax Invoice Studio",
+      title: "Pearl Laundry · Shop Operations",
       description:
-        "Build and print Saudi VAT laundry invoices with a compliant QR code.",
+        "Run laundry orders, payments, customers, reports, and service pricing in one secure app.",
       images: [ogImage],
     },
   };
