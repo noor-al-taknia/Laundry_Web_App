@@ -28,6 +28,7 @@ export async function POST(request: Request) {
     const user = await getD1()
       .prepare(
         `SELECT id, username, display_name AS displayName, role,
+                portal_role AS portalRole,
                 password_hash AS passwordHash, password_salt AS passwordSalt,
                 must_change_password AS mustChangePassword
          FROM users WHERE username = ? AND is_active = 1`,
@@ -51,6 +52,7 @@ export async function POST(request: Request) {
       username: user.username,
       displayName: user.displayName,
       role: user.role,
+      portalRole: user.portalRole,
       mustChangePassword: Boolean(user.mustChangePassword),
     };
     const token = await createSessionToken(session);

@@ -1,0 +1,13 @@
+{
+  "name": "@laundry/admin-portal",
+  "version": "2.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": { "dev": "vinext dev --hostname 0.0.0.0", "build": "vinext build", "typecheck": "tsc --noEmit" },
+  "dependencies": {
+    "@laundry/contracts": "1.0.0",
+    "next": "16.2.12",
+    "react": "19.2.6",
+    "react-dom": "19.2.6"
+  }
+}

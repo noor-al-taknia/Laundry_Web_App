@@ -1,38 +1,52 @@
-# Laundry Web App
+# Laundry Operations Platform
 
-Production-oriented, database-backed laundry billing and administration for
-shop owners and staff. It includes JWT authentication, role isolation, Saudi
-VAT invoices with a TLV QR code, customers, effective-dated service pricing,
-payment tracking, paginated reports, CSV imports, and PDF/Excel/CSV exports.
+A blue-and-white laundry point-of-sale and administration platform organized
+around independently owned frontend and backend domains. This is a transition
+workspace: it runs both portals against a compatibility API today, while every
+target repository has its own folder, schema, migration, runtime configuration,
+and README.
 
-See [IMPLEMENTATION.md](./IMPLEMENTATION.md) for the complete user manual,
-architecture, security model, data relationships, API guide, and extension
-instructions.
+## Applications
+
+| Folder | Purpose | Local address/port |
+|---|---|---|
+| `office-portal/` | Full-screen Sales and Expenses workspace | `http://localhost:3000/` |
+| `admin-portal/` | Owner analytics, reports, CRUD and access control | `http://localhost:3000/admin` |
+| `services/identity-service/` | JWT identities, roles and grants | `4101` after extraction |
+| `services/catalog-service/` | Categories, items and effective prices | `4102` |
+| `services/customer-service/` | Customer master data | `4103` |
+| `services/order-service/` | Orders, unique tokens and invoice snapshots | `4104` |
+| `services/expense-service/` | Operating expenses | `4105` |
+| `services/reporting-service/` | Read models and analytics | `4106` |
+| `services/settings-service/` | Shops, branches and invoice identity | `4107` |
+| `contracts/` | Versioned API contracts | published package |
 
 ## Run locally
+
+Requires Node.js 22.13 or later.
 
 ```bash
 npm install
 npm run dev
 ```
 
-Open:
+Open `http://localhost:3000` for Office and `http://localhost:3000/admin` for
+Admin. If 3000 is occupied, use the alternate port printed in the terminal.
 
-- This computer: `http://localhost:3000`
-- Another device on the same Wi-Fi: use the Network URL printed by the command,
-  for example `http://192.168.8.173:3000`
+Development accounts:
 
-If the second device cannot connect, allow incoming Node.js connections in the
-computer firewall and confirm both devices are on the same non-guest Wi-Fi.
-Do not use `localhost` on the second device—there it refers to that device
-itself.
+- Super-admin: `admin` / `Admin@123`
+- Office staff: `staff` / `Staff@123`
 
-Initial accounts:
+Change both passwords and set a private `JWT_SECRET` of at least 32 random
+bytes before production.
 
-- Admin: `admin` / `Admin@123`
-- Staff: `staff` / `Staff@123`
+### Another device on the same Wi-Fi
 
-Change both temporary passwords immediately.
+The command listens on `0.0.0.0`. Open the Network URL printed by the terminal,
+for example `http://192.168.8.192:3000`, on the other device. Do not use
+`localhost` there. Both devices must use the same non-guest network, and the
+host firewall must allow Node.js.
 
 ## Validate
 
@@ -40,18 +54,20 @@ Change both temporary passwords immediately.
 npm run ci
 ```
 
-GitHub Actions runs type checking, ESLint, Vitest, and a production build on
-pushes and pull requests to `main` and `Dev`.
+Each extracted backend is independently runnable:
 
-## Production
+```bash
+cd services/order-service
+npm install
+npm run db:migrate:local
+npm run dev
+```
 
-Set a private `JWT_SECRET` containing at least 32 random bytes in the hosting
-environment. Never commit it. Change both seeded passwords before real use.
+Replace the placeholder D1 ID in `wrangler.toml` before deployment.
 
-## CSV imports
+## Documentation
 
-Sign in as admin, open **Import data**, choose the entity, and download its
-template. Keep headers unchanged, save as UTF-8 CSV, preserve phone numbers as
-text, use decimal prices without `SAR`, use `#RRGGBB` category colors, and keep
-each file under 1,000 rows / 2 MB. Imports are validated and atomic; any bad or
-duplicate row rejects the complete file.
+- [Implementation guide](./IMPLEMENTATION.md)
+- [Architecture and ownership](./docs/ARCHITECTURE.md)
+- [Repository split runbook](./docs/REPOSITORY_SPLIT.md)
+- [CSV import rules](./docs/CSV_IMPORT.md)

@@ -1,0 +1,3 @@
+/* eslint-disable import/no-anonymous-default-export */
+type Env = { DB: D1Database };
+export default { async fetch(request: Request, env: Env) { const url = new URL(request.url); if (url.pathname === "/health") return Response.json({ service: "expense-service", status: "ok" }); if (url.pathname === "/ready") { await env.DB.prepare("SELECT 1").first(); return Response.json({ ready: true }); } if (url.pathname === "/v1/expenses" && request.method === "GET") { const rows = await env.DB.prepare("SELECT * FROM expenses ORDER BY expense_date DESC, created_at DESC LIMIT 100").all(); return Response.json({ data: rows.results }); } return Response.json({ error: "Route not found" }, { status: 404 }); } };

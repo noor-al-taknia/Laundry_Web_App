@@ -21,6 +21,11 @@ export const users = sqliteTable(
     username: text("username").notNull(),
     displayName: text("display_name").notNull(),
     role: text("role", { enum: ["admin", "staff"] }).notNull(),
+    portalRole: text("portal_role", {
+      enum: ["super_admin", "admin", "office_staff"],
+    })
+      .notNull()
+      .default("office_staff"),
     passwordHash: text("password_hash").notNull(),
     passwordSalt: text("password_salt").notNull(),
     isActive: integer("is_active", { mode: "boolean" }).notNull().default(true),
@@ -32,6 +37,10 @@ export const users = sqliteTable(
   (table) => [
     uniqueIndex("users_username_uq").on(table.username),
     check("users_role_check", sql`${table.role} IN ('admin', 'staff')`),
+    check(
+      "users_portal_role_check",
+      sql`${table.portalRole} IN ('super_admin', 'admin', 'office_staff')`,
+    ),
   ],
 );
 
@@ -150,6 +159,7 @@ export const orders = sqliteTable(
   {
     id: integer("id").primaryKey({ autoIncrement: true }),
     invoiceNumber: text("invoice_number").notNull(),
+    tokenNumber: text("token_number"),
     customerId: integer("customer_id").references(() => customers.id, {
       onDelete: "set null",
     }),
@@ -180,6 +190,7 @@ export const orders = sqliteTable(
   },
   (table) => [
     uniqueIndex("orders_invoice_number_uq").on(table.invoiceNumber),
+    uniqueIndex("orders_token_number_uq").on(table.tokenNumber),
     index("orders_date_idx").on(table.orderDate),
     index("orders_customer_idx").on(table.customerId),
     index("orders_status_method_idx").on(
@@ -198,6 +209,48 @@ export const orders = sqliteTable(
       "orders_amounts_check",
       sql`${table.subtotal} >= 0 AND ${table.discount} >= 0 AND ${table.vatAmount} >= 0 AND ${table.totalAmount} >= 0 AND ${table.amountPaid} >= 0 AND ${table.balance} >= 0`,
     ),
+  ],
+);
+
+export const orderSequences = sqliteTable("order_sequences", {
+  businessDate: text("business_date").primaryKey(),
+  nextValue: integer("next_value").notNull().default(1),
+  updatedAt: text("updated_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+});
+
+export const expenses = sqliteTable(
+  "expenses",
+  {
+    id: integer("id").primaryKey(),
+    expenseNumber: text("expense_number").notNull(),
+    expenseDate: text("expense_date").notNull(),
+    category: text("category").notNull(),
+    description: text("description").notNull(),
+    amount: real("amount").notNull(),
+    paymentMethod: text("payment_method", {
+      enum: ["cash", "card", "bank"],
+    }).notNull(),
+    vendor: text("vendor").notNull().default(""),
+    receiptReference: text("receipt_reference").notNull().default(""),
+    notes: text("notes").notNull().default(""),
+    status: text("status", { enum: ["posted", "void"] })
+      .notNull()
+      .default("posted"),
+    createdBy: integer("created_by")
+      .notNull()
+      .references(() => users.id, { onDelete: "restrict" }),
+    version: integer("version").notNull().default(1),
+    ...timestamps,
+  },
+  (table) => [
+    uniqueIndex("expenses_number_uq").on(table.expenseNumber),
+    index("expenses_date_category_idx").on(table.expenseDate, table.category),
+    check("expenses_amount_check", sql`${table.amount} > 0`),
+    check(
+      "expenses_payment_method_check",
+      sql`${table.paymentMethod} IN ('cash', 'card', 'bank')`,
+    ),
+    check("expenses_status_check", sql`${table.status} IN ('posted', 'void')`),
   ],
 );
 

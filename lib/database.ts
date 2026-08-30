@@ -9,6 +9,7 @@ const schemaStatements = [
     username TEXT NOT NULL UNIQUE,
     display_name TEXT NOT NULL,
     role TEXT NOT NULL CHECK(role IN ('admin','staff')),
+    portal_role TEXT NOT NULL DEFAULT 'office_staff' CHECK(portal_role IN ('super_admin','admin','office_staff')),
     password_hash TEXT NOT NULL,
     password_salt TEXT NOT NULL,
     is_active INTEGER NOT NULL DEFAULT 1,
@@ -77,6 +78,7 @@ const schemaStatements = [
   `CREATE TABLE IF NOT EXISTS orders (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     invoice_number TEXT NOT NULL UNIQUE,
+    token_number TEXT UNIQUE,
     customer_id INTEGER REFERENCES customers(id) ON DELETE SET NULL,
     customer_name TEXT NOT NULL,
     customer_phone TEXT NOT NULL DEFAULT '',
@@ -94,6 +96,28 @@ const schemaStatements = [
     amount_paid REAL NOT NULL DEFAULT 0 CHECK(amount_paid >= 0),
     balance REAL NOT NULL CHECK(balance >= 0),
     notes TEXT NOT NULL DEFAULT '',
+    version INTEGER NOT NULL DEFAULT 1,
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+  )`,
+  `CREATE TABLE IF NOT EXISTS order_sequences (
+    business_date TEXT PRIMARY KEY,
+    next_value INTEGER NOT NULL DEFAULT 1 CHECK(next_value > 0),
+    updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+  )`,
+  `CREATE TABLE IF NOT EXISTS expenses (
+    id INTEGER PRIMARY KEY,
+    expense_number TEXT NOT NULL UNIQUE,
+    expense_date TEXT NOT NULL,
+    category TEXT NOT NULL,
+    description TEXT NOT NULL,
+    amount REAL NOT NULL CHECK(amount > 0),
+    payment_method TEXT NOT NULL CHECK(payment_method IN ('cash','card','bank')),
+    vendor TEXT NOT NULL DEFAULT '',
+    receipt_reference TEXT NOT NULL DEFAULT '',
+    notes TEXT NOT NULL DEFAULT '',
+    status TEXT NOT NULL DEFAULT 'posted' CHECK(status IN ('posted','void')),
+    created_by INTEGER NOT NULL REFERENCES users(id) ON DELETE RESTRICT,
     version INTEGER NOT NULL DEFAULT 1,
     created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
@@ -138,10 +162,30 @@ const schemaStatements = [
   "CREATE INDEX IF NOT EXISTS orders_date_idx ON orders(order_date)",
   "CREATE INDEX IF NOT EXISTS orders_customer_idx ON orders(customer_id)",
   "CREATE INDEX IF NOT EXISTS orders_status_method_idx ON orders(payment_status, payment_method)",
+  "CREATE INDEX IF NOT EXISTS expenses_date_category_idx ON expenses(expense_date, category)",
   "CREATE INDEX IF NOT EXISTS order_items_order_idx ON order_items(order_id)",
   "CREATE INDEX IF NOT EXISTS order_events_order_idx ON order_events(order_id)",
   "CREATE INDEX IF NOT EXISTS permission_staff_scope_idx ON permission_grants(staff_user_id, scope, from_date, to_date)",
 ];
+
+async function ensureCompatibilityColumns() {
+  const db = getD1();
+  const usersInfo = await db.prepare("PRAGMA table_info(users)").all<{ name: string }>();
+  if (!usersInfo.results.some((column) => column.name === "portal_role")) {
+    await db.prepare("ALTER TABLE users ADD COLUMN portal_role TEXT NOT NULL DEFAULT 'office_staff'").run();
+  }
+  await db
+    .prepare("UPDATE users SET portal_role = 'super_admin' WHERE role = 'admin' AND portal_role = 'office_staff'")
+    .run();
+
+  const ordersInfo = await db.prepare("PRAGMA table_info(orders)").all<{ name: string }>();
+  if (!ordersInfo.results.some((column) => column.name === "token_number")) {
+    await db.prepare("ALTER TABLE orders ADD COLUMN token_number TEXT").run();
+  }
+  await db
+    .prepare("CREATE UNIQUE INDEX IF NOT EXISTS orders_token_number_uq ON orders(token_number) WHERE token_number IS NOT NULL")
+    .run();
+}
 
 async function seedDatabase() {
   const db = getD1();
@@ -154,14 +198,14 @@ async function seedDatabase() {
     await db.batch([
       db
         .prepare(
-          `INSERT INTO users (id, username, display_name, role, password_hash, password_salt)
-           VALUES (1, 'admin', 'Shop Administrator', 'admin', ?, ?)`,
+          `INSERT INTO users (id, username, display_name, role, portal_role, password_hash, password_salt)
+           VALUES (1, 'admin', 'Technical Administrator', 'admin', 'super_admin', ?, ?)`,
         )
         .bind(admin.hash, admin.salt),
       db
         .prepare(
-          `INSERT INTO users (id, username, display_name, role, password_hash, password_salt)
-           VALUES (2, 'staff', 'Billing Staff', 'staff', ?, ?)`,
+          `INSERT INTO users (id, username, display_name, role, portal_role, password_hash, password_salt)
+           VALUES (2, 'staff', 'Office Staff', 'staff', 'office_staff', ?, ?)`,
         )
         .bind(staff.hash, staff.salt),
     ]);
@@ -235,6 +279,7 @@ export async function ensureDatabase() {
     initialization = (async () => {
       const db = getD1();
       await db.batch(schemaStatements.map((statement) => db.prepare(statement)));
+      await ensureCompatibilityColumns();
       await seedDatabase();
     })().catch((error) => {
       initialization = null;

@@ -27,6 +27,7 @@ function today() {
 function receiptFromDetail(detail: OrderDetail): ReceiptData {
   return {
     invoiceNumber: detail.order.invoiceNumber,
+    tokenNumber: detail.order.tokenNumber,
     orderDateTime: detail.order.createdAt,
     supplyDate: detail.order.supplyDate,
     customerName: detail.order.customerName,

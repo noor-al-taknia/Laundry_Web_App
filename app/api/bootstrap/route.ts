@@ -55,6 +55,7 @@ export async function GET(request: Request) {
         db
           .prepare(
             `SELECT id, username, display_name AS displayName, role,
+                    portal_role AS portalRole,
                     is_active AS isActive,
                     must_change_password AS mustChangePassword,
                     created_at AS createdAt
@@ -65,6 +66,7 @@ export async function GET(request: Request) {
             username: string;
             displayName: string;
             role: "admin" | "staff";
+            portalRole: "super_admin" | "admin" | "office_staff";
             isActive: number;
             mustChangePassword: number;
             createdAt: string;

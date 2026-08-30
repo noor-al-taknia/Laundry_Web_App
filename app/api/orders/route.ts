@@ -15,6 +15,7 @@ import {
 import { ensureDatabase } from "../../../lib/database";
 import { getOrderDetail, getOrders } from "../../../lib/data";
 import { numericId } from "../../../lib/id";
+import { formatOrderToken } from "../../../lib/token";
 import {
   canReadRange,
   canWriteOrderDate,
@@ -209,6 +210,21 @@ export async function POST(request: Request) {
       return json({ error: "Shop settings are not configured" }, 500);
     }
     const invoiceNumber = `${invoiceSequence.prefix}-${String(invoiceSequence.number).padStart(6, "0")}`;
+    const tokenSequence = await db
+      .prepare(
+        `INSERT INTO order_sequences (business_date, next_value, updated_at)
+         VALUES (?, 2, CURRENT_TIMESTAMP)
+         ON CONFLICT(business_date) DO UPDATE SET
+           next_value = next_value + 1,
+           updated_at = CURRENT_TIMESTAMP
+         RETURNING next_value - 1 AS tokenValue`,
+      )
+      .bind(riyadhDate())
+      .first<{ tokenValue: number }>();
+    if (!tokenSequence) {
+      return json({ error: "Unable to allocate order token" }, 500);
+    }
+    const tokenNumber = formatOrderToken(riyadhDate(), tokenSequence.tokenValue);
     const orderId = numericId();
     const now = riyadhIso();
 
@@ -235,16 +251,17 @@ export async function POST(request: Request) {
       db
         .prepare(
           `INSERT INTO orders
-           (id, invoice_number, customer_id, customer_name, customer_phone,
+           (id, invoice_number, token_number, customer_id, customer_name, customer_phone,
             customer_email, customer_address, created_by, order_date,
             supply_date, payment_method, payment_status, subtotal, discount,
             vat_amount, total_amount, amount_paid, balance, notes, created_at,
             updated_at)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         )
         .bind(
           orderId,
           invoiceNumber,
+          tokenNumber,
           customerId,
           customer.name,
           customer.phone,

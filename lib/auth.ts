@@ -14,6 +14,7 @@ export type SessionUser = {
   username: string;
   displayName: string;
   role: Role;
+  portalRole: "super_admin" | "admin" | "office_staff";
   mustChangePassword: boolean;
 };
 
@@ -48,10 +49,17 @@ export async function verifySessionToken(token: string) {
   );
   if (!valid) return null;
   try {
+    const parsedHeader = JSON.parse(decodeBase64Url(header)) as {
+      alg?: string;
+      typ?: string;
+    };
     const parsed = JSON.parse(decodeBase64Url(payload)) as JwtPayload;
     if (
+      parsedHeader.alg !== "HS256" ||
+      parsedHeader.typ !== "JWT" ||
       parsed.exp <= Math.floor(Date.now() / 1000) ||
-      !["admin", "staff"].includes(parsed.role)
+      !["admin", "staff"].includes(parsed.role) ||
+      !["super_admin", "admin", "office_staff"].includes(parsed.portalRole)
     ) {
       return null;
     }
@@ -87,6 +95,7 @@ export async function requireSession(request: Request, role?: Role) {
   const current = await getD1()
     .prepare(
       `SELECT id, username, display_name AS displayName, role,
+              portal_role AS portalRole,
               must_change_password AS mustChangePassword
        FROM users WHERE id = ? AND is_active = 1`,
     )

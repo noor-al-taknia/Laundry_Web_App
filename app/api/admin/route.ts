@@ -416,13 +416,14 @@ export async function POST(request: Request) {
         await db
           .prepare(
             `INSERT INTO users
-             (username, display_name, role, password_hash, password_salt)
-             VALUES (?, ?, ?, ?, ?)`,
+             (username, display_name, role, portal_role, password_hash, password_salt)
+             VALUES (?, ?, ?, ?, ?, ?)`,
           )
           .bind(
             username,
             textValue(body.displayName, 120) || username,
             body.role === "admin" ? "admin" : "staff",
+            body.role === "admin" ? "admin" : "office_staff",
             passwordData.hash,
             passwordData.salt,
           )
@@ -439,10 +440,16 @@ export async function POST(request: Request) {
           return json({ error: "You cannot remove your own admin role." }, 400);
         }
         const currentUser = await db
-          .prepare("SELECT role, is_active AS isActive FROM users WHERE id = ?")
+          .prepare("SELECT role, portal_role AS portalRole, is_active AS isActive FROM users WHERE id = ?")
           .bind(id)
-          .first<{ role: string; isActive: number }>();
+          .first<{ role: string; portalRole: string; isActive: number }>();
         if (!currentUser) return json({ error: "User not found." }, 404);
+        if (currentUser.portalRole === "super_admin" && admin.portalRole !== "super_admin") {
+          return json({ error: "Only a super-admin can modify technical accounts." }, 403);
+        }
+        if (body.portalRole === "super_admin" && admin.portalRole !== "super_admin") {
+          return json({ error: "Only a super-admin can grant technical access." }, 403);
+        }
         if (
           currentUser.role === "admin" &&
           (role !== "admin" || body.isActive === false)
@@ -462,12 +469,17 @@ export async function POST(request: Request) {
         const statements = [
           db
             .prepare(
-              `UPDATE users SET display_name = ?, role = ?, is_active = ?,
+              `UPDATE users SET display_name = ?, role = ?, portal_role = ?, is_active = ?,
                updated_at = CURRENT_TIMESTAMP WHERE id = ?`,
             )
             .bind(
               textValue(body.displayName, 120),
               role,
+              role === "staff"
+                ? "office_staff"
+                : body.portalRole === "super_admin" && admin.portalRole === "super_admin"
+                  ? "super_admin"
+                  : "admin",
               body.isActive === false ? 0 : 1,
               id,
             ),

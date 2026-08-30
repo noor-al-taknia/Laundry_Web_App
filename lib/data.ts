@@ -163,10 +163,10 @@ export async function getOrders(
   }
   if (filters.customer) {
     conditions.push(
-      "(o.customer_name LIKE ? OR o.customer_phone LIKE ? OR o.invoice_number LIKE ?)",
+      "(o.customer_name LIKE ? OR o.customer_phone LIKE ? OR o.invoice_number LIKE ? OR o.token_number LIKE ?)",
     );
     const search = `%${filters.customer.slice(0, 100)}%`;
-    values.push(search, search, search);
+    values.push(search, search, search, search);
   }
   if (filters.customerId) {
     conditions.push("o.customer_id = ?");
@@ -208,7 +208,7 @@ export async function getOrders(
   const result = await db
     .prepare(
       `SELECT
-         o.id, o.invoice_number AS invoiceNumber, o.customer_id AS customerId,
+         o.id, o.invoice_number AS invoiceNumber, COALESCE(o.token_number, '') AS tokenNumber, o.customer_id AS customerId,
          o.customer_name AS customerName, o.customer_phone AS customerPhone,
          o.customer_email AS customerEmail, o.customer_address AS customerAddress,
          o.order_date AS orderDate, o.supply_date AS supplyDate,
@@ -244,7 +244,7 @@ export async function getOrderDetail(orderId: number) {
   const order = await getD1()
     .prepare(
       `SELECT
-         o.id, o.invoice_number AS invoiceNumber, o.customer_id AS customerId,
+         o.id, o.invoice_number AS invoiceNumber, COALESCE(o.token_number, '') AS tokenNumber, o.customer_id AS customerId,
          o.customer_name AS customerName, o.customer_phone AS customerPhone,
          o.customer_email AS customerEmail, o.customer_address AS customerAddress,
          o.created_by AS createdBy, o.order_date AS orderDate,

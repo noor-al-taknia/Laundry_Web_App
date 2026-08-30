@@ -6,6 +6,7 @@ import type { OrderItem, Shop } from "../types";
 
 export type ReceiptData = {
   invoiceNumber: string;
+  tokenNumber?: string;
   orderDateTime: string;
   supplyDate: string;
   customerName: string;
@@ -89,6 +90,12 @@ export function Receipt({
           <dt>Invoice No. / رقم الفاتورة</dt>
           <dd>{receipt.invoiceNumber}</dd>
         </div>
+        {receipt.tokenNumber && (
+          <div className="receipt-token">
+            <dt>Token / رقم الطلب</dt>
+            <dd>{receipt.tokenNumber}</dd>
+          </div>
+        )}
         <div>
           <dt>Invoice Date / تاريخ الإصدار</dt>
           <dd>{dateLabel(receipt.orderDateTime)}</dd>
