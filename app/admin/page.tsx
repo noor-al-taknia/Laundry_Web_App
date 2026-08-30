@@ -1,1 +1,1 @@
-export { default } from "../../admin-portal/src/AdminPortal";
+export { default } from "../../FE/app/admin/page";

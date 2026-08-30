@@ -1,1 +1,1 @@
-export { default } from "../office-portal/src/OfficePortal";
+export { default } from "../FE/app/page";

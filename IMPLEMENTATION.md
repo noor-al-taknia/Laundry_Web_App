@@ -2,103 +2,73 @@
 
 Updated: 30 August 2026
 
-## Office portal
+## Roles and authentication
 
-The Office portal has no side navigation. Its top bar contains **Sales** and
-**Expenses**, token search, and a profile menu.
+JWT authentication uses an HttpOnly, SameSite=Strict cookie with an eight-hour expiry. Passwords use PBKDF2-SHA-256 with a per-user random salt and 150,000 iterations. Every API verifies the live user and role; navigation visibility is never treated as authorization.
 
-Sales uses the complete screen: select/search a customer, choose a large
-category button on the right, tap its category-colored service buttons, adjust
-quantity/discount/received amount, select cash or card, and save. The server
-reloads authoritative prices, calculates 15% VAT, stores immutable line
-snapshots, derives paid/partial/unpaid, and allocates a token such as
-`T-260830-0007`.
+- `office_staff`: sales, exact invoice printing, today's expenses and collections, and read-only collection history for today plus the previous two days.
+- `admin`: shop-owner control of business data, settings, reports, approvals and staff password requests.
+- `super_admin`: all admin rights plus technical accounts/platform controls.
 
-There is no onscreen bill preview. **Save & print** renders only the exact 80 mm
-receipt into the browser print dialog. Every saved bill contains the VAT TLV QR.
+Login inputs include a show/hide password control. A staff reset/forgot-password action creates an admin inbox request without revealing whether a username exists. An admin sets a temporary password or denies the request. Production should require the staff member to change the temporary password at first login.
 
-Expenses displays today's entries in a table and provides an Add Expense form.
-Staff can create/change only today's expenses. Historical access follows the
-three-day/grant rules.
+## Office functional flow
+
+The Office portal deliberately has no side navigation. Its top-level tabs are **Sales**, **Expenses**, and **Collections**, with language and profile/logout controls.
+
+Sales fills the screen with searchable customer selection, large category controls on the right, and large item controls whose color is consistent within a category. The server reloads authoritative prices, computes 15% VAT, stores invoice snapshots, and allocates date-scoped tokens such as `T-260830-0007`.
+
+Every new bill also requires an active staff selection. Admin creates the staff login/profile and maintains mobile, passport number/validity, visa status/validity, and Iqama number/validity. The Office dropdown exposes only the name and mobile; passport, visa and Iqama fields remain in the authorized Admin portal.
+
+Payment is presented as **Card/Cash**:
+
+- Card requires the receiving account: `STC` or `ANB`.
+- Cash records amount received and computed balance.
+- Staff may mark a balance settled and allocate the settlement between staff money and drawer/wallet money. The API validates that settlement components cannot exceed the remaining balance.
+- A non-zero **From staff** value automatically creates a company receivable linked to the exact staff member and order. Admin can review and settle this debt ledger; voiding an open test/order debt voids the corresponding receivable without deleting its audit trail.
+- Paid, partial, and unpaid states are derived server-side.
+
+The bill preview stays off the sales screen. Save & Print opens the browser print dialog and prints only the 80 mm invoice. Every invoice contains the Saudi VAT TLV QR, and the token is rendered with a heavy black border and bold type for quick recognition.
+
+Expenses shows a daily table and an Add Expense form. Collections shows daily sales, collected amount, outstanding balance, token rows, payment edits, and audit-safe **Void**. Financial orders are never hard deleted.
+
+## Time-limited staff permissions
+
+Staff can write today's orders and expenses. They can read collections for today and the previous two days. For an older date or historical write:
+
+1. The API returns `403` for the restricted operation.
+2. Office creates a request for one exact task and resource: `collection_read` + date, `order_update` + order ID, or `expense_update` + expense ID.
+3. Admin sees the request in **Approval inbox** and approves, denies, or revokes it.
+4. Approval expires (the UI defaults to 24 hours) and authorizes only that resource/task pair.
+
+The API checks both expiry and scope on every operation. A collection-read grant cannot modify an order, and an order grant cannot change any other order.
 
 ## Admin portal
 
-`admin` is the shop owner. `super_admin` is reserved for the technical team.
-Authorization is enforced by APIs, not by hidden navigation.
+The blue-and-white Admin portal is responsive across desktop, tablet, and mobile, including contained scroll for dense tables and touch-size controls. English and Arabic are available; Arabic switches portal direction to RTL.
 
-- Dashboard: sales, collections, expenses, net, cash/card mix and outstanding.
-- Reports: pagination, sorting/filtering, PDF/Excel-compatible/CSV export.
-- Expense history and void control.
-- Category, item, effective price, customer, import, user, permission and shop
-  setting CRUD.
-- Customer purchase drill-down and audited order-payment changes.
-- Super-admin-only platform and technical-account controls.
+Admin capabilities include dashboard analytics; paginated/filterable reports; cash/card and STC/ANB classification; paid/partial/unpaid filtering; PDF/CSV/Excel-compatible export; category/item/effective-price CRUD; customer CRUD and purchase drill-down; expenses; users; shop identity/settings; CSV import; permission approvals; and staff password-reset fulfillment.
 
-| Capability | Office staff | Admin | Super-admin |
-|---|---:|---:|---:|
-| Sales, print and token lookup | Yes | Yes | Yes |
-| Today's expenses | Yes | Yes | Yes |
-| Read today + previous two days | Yes | Yes | Yes |
-| Older staff access | Explicit grant | All | All |
-| Business CRUD/settings/reports | No | Yes | Yes |
-| Technical accounts/platform | No | No | Yes |
+Report tables, details and exports include card receiving account, cash received, staff-funded amount, drawer/wallet-funded amount, and assigned staff. Admin payment CRUD uses the same fields and keeps the staff receivable ledger synchronized.
 
-Older staff order writes require `orders_history_write`; older reads require
-`reports_history`.
+Only admin/super-admin can change shop name, address, contact, email and VAT number used on every bill. Super-admin-only operations remain isolated at the API.
 
-## Architecture and integrity
+## Data model and integrity
 
-The target uses database-per-service ownership; see `docs/ARCHITECTURE.md`.
-The root Vinext app is a migration compatibility composition that runs the
-complete implementation against one local D1 database. Root `app/api` routes
-are not the final cross-service integration layer.
+Category → service item → effective-dated price is the catalog relationship. Customer master records are referenced by orders, while each order keeps customer, shop, price and VAT snapshots so old invoices do not change when master data changes.
 
-- Usernames, invoices and tenant-scoped tokens are unique.
-- Tokens are date-scoped and use an atomic daily sequence.
-- Category → item → effective-dated price is the catalog hierarchy.
-- Orders own customer/catalog snapshots, so historical invoices never mutate.
-- Money/status/method fields are constrained and updates use optimistic versions.
-- Deletes of financial/linked data are void or deactivate operations.
-- Order/Expense writes pair aggregate and outbox event in one transaction;
-  Reporting deduplicates events with its inbox.
-- Extracted service queries must always include tenant scope.
+Order tokens, invoice numbers and usernames are unique. Money/status/method fields have database checks. Updates use optimistic versions to reject stale browser writes. Order events record payment changes and voids. Prepared statements, same-origin mutation checks and server-side calculations prevent browser values from becoming authoritative.
 
-## Security
-
-- PBKDF2-SHA-256 password hashes, random salt, 150,000 iterations.
-- HS256 JWT, HttpOnly SameSite=Strict cookie, Secure over HTTPS, 8-hour expiry.
-- JWT algorithm/type/expiry/role claims and current active user are verified.
-- Mutations require same origin and prepared SQL bindings.
-- Prices, VAT, status and balance are computed server-side.
-- Only super-admin can grant or modify super-admin access.
-- Production should add edge rate limiting, account backoff, secret rotation,
-  central audit logs and super-admin MFA.
-
-## Database and state
-
-The transition schema is `db/schema.ts` with generated migrations in `drizzle/`.
-Each backend owns `services/<name>/db/schema.ts`, `drizzle/`,
-`drizzle.config.ts`, `wrangler.toml`, and local migration scripts. Never create
-cross-service foreign keys; use IDs, APIs and events.
-
-Zustand owns the Office section, active category, customer and sale cart. Only
-the non-sensitive draft is session-persisted. Server data remains authoritative
-and is refreshed after writes.
-
-Both portals persist the `en`/`ar` choice and switch the portal root between LTR
-and RTL. The Admin shell adapts from full navigation on desktop to compact
-tablet navigation and a mobile drawer. Tables are contained and horizontally
-scrollable on small screens, while cards/forms collapse to one column with
-touch-size actions.
+Zustand owns the Office section, active category, customer and cart draft. Only non-sensitive draft state is session-persisted; server data is fetched again after writes. The server/database remains the source of truth.
 
 ## Printing
 
-Use 80 mm paper, 100% scale, no margins, browser headers/footers off and high
-print density. Print CSS outputs only `#invoice-receipt` with black rules,
-strong system fonts and a 30 mm QR.
+Use an 80 mm roll, 100% scale, zero margins, browser headers/footers disabled and the printer's high-density mode. Print CSS isolates `#invoice-receipt`, uses strong black text/rules, an Arabic-capable system font stack and a clear QR. What appears in the print preview is the exact bill sent to the printer.
 
-## Quality and release
+## Frontend/backend boundary
 
-`npm run ci` runs types, lint, VAT/TLV/CSV/token tests and a production build.
-Apply migrations before dependent code. Verify health/readiness, error rate,
-event lag, token uniqueness and invoice totals during progressive rollout.
+`FE/app/api/[...path]/route.ts` is a same-origin browser proxy to `http://127.0.0.1:4000` by default. It preserves secure cookies and avoids browser CORS complexity. The runnable backend is `BE/platform-api`; folders under `BE/services` define the final database-per-service boundaries and can be extracted gradually using `docs/REPOSITORY_SPLIT.md`.
+
+## Release checklist
+
+Run `npm run ci`, apply generated migrations before code, use production secrets, remove seed credentials, enable rate limiting/MFA/central audit retention, back up the database, and verify sample invoice totals plus QR payloads. Do not run forced dependency upgrades without reviewing breaking changes.

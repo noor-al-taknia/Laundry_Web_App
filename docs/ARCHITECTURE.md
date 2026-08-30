@@ -21,11 +21,11 @@ allowlisted service bindings. Each service still authorizes every operation.
 
 | Repository | Owns | Must not own |
 |---|---|---|
-| identity-service | users, refresh sessions, grants | orders/catalog |
+| identity-service | users, staff identity/employment profiles, refresh sessions, grants | orders/catalog |
 | settings-service | shops, branches, VAT/invoice identity | users |
 | catalog-service | categories, service items, prices | invoice lines |
 | customer-service | customer master and customer events | totals |
-| order-service | sequences, orders, snapshots, audit/outbox | live prices |
+| order-service | sequences, orders, assigned staff, staff-debt ledger, snapshots, audit/outbox | live prices |
 | expense-service | expenses and expense outbox | report aggregates |
 | reporting-service | projections, metrics, event inbox | source writes |
 
@@ -37,7 +37,7 @@ strings so events can cross database boundaries safely.
 1. Office sends item IDs, quantities, customer input and payment input.
 2. Order obtains authoritative catalog prices and customer/settings snapshots.
 3. One transaction allocates token/invoice sequences and writes the order,
-   lines, audit event and outbox event.
+   assigned staff, optional staff-funded company receivable, lines, audit event and outbox event.
 4. The complete immutable invoice snapshot returns for printing.
 5. Outbox delivery retries until Reporting accepts the event.
 6. Reporting records the event ID before updating projections, making replay
@@ -63,4 +63,3 @@ direction per portal, and use RTL-safe alignment/positioning. Arabic uses an
 Arabic-capable system font stack. Admin navigation is full width on desktop,
 compact on tablet and a focusable slide-out drawer on mobile. Dense tables use
 contained horizontal scrolling so controls never overflow the viewport.
-

@@ -1,0 +1,27 @@
+{
+  "version": "7",
+  "dialect": "sqlite",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "6",
+      "when": 1788094467537,
+      "tag": "0000_acoustic_starjammers",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1788097667626,
+      "tag": "0001_dark_gargoyle",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1788098678635,
+      "tag": "0002_open_karen_page",
+      "breakpoints": true
+    }
+  ]
+}

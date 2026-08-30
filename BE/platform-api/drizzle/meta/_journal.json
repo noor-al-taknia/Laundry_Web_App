@@ -1,0 +1,41 @@
+{
+  "version": "7",
+  "dialect": "sqlite",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "6",
+      "when": 1785326628394,
+      "tag": "0000_chemical_bulldozer",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1788094306276,
+      "tag": "0001_lethal_turbo",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1788097661113,
+      "tag": "0002_unique_roxanne_simpson",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "6",
+      "when": 1788098084687,
+      "tag": "0003_needy_speed_demon",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "6",
+      "when": 1788098677009,
+      "tag": "0004_minor_talon",
+      "breakpoints": true
+    }
+  ]
+}
