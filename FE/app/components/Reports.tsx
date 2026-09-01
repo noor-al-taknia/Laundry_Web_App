@@ -57,6 +57,7 @@ export function Reports({
   const [loading, setLoading] = useState(false);
   const [exporting, setExporting] = useState("");
   const [detail, setDetail] = useState<OrderDetail | null>(null);
+  const [filtersOpen, setFiltersOpen] = useState(false);
   const [edit, setEdit] = useState({
     status: "unpaid",
     method: "cash",
@@ -232,7 +233,8 @@ export function Reports({
       </section>
 
       <section className="card report-card">
-        <div className="report-filters">
+        <div className="report-filter-heading"><div><b>Filters</b><span>Narrow orders by date, payment, customer, or account.</span></div><button type="button" aria-expanded={filtersOpen} aria-controls="admin-report-filters" onClick={() => setFiltersOpen((open) => !open)}>{filtersOpen ? "Hide filters" : "Show filters"}</button></div>
+        <div id="admin-report-filters" className={`report-filters ${filtersOpen ? "open" : ""}`}>
           <label>
             From
             <input

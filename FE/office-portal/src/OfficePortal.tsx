@@ -191,6 +191,7 @@ function OfficeLogin({ error, onLogin, locale, changeLocale }: { error: string; 
   const [message, setMessage] = useState(error);
   const [showPassword, setShowPassword] = useState(false);
   const [resetSent, setResetSent] = useState(false);
+  const [resetMode, setResetMode] = useState(false);
   async function submit(event: FormEvent) {
     event.preventDefault();
     setBusy(true);
@@ -218,13 +219,13 @@ function OfficeLogin({ error, onLogin, locale, changeLocale }: { error: string; 
   return (
     <main className="office-login" dir={locale === "ar" ? "rtl" : "ltr"}>
       <section className="office-login-copy"><span>PL</span><p>PEARL LAUNDRY</p><h1>{tr(locale,"Fast orders.","طلبات أسرع.")}<br />{tr(locale,"Clear daily costs.","مصروفات يومية واضحة.")}</h1><small>{tr(locale,"Secure office operations for your front desk.","تشغيل آمن وسهل لمكتب الاستقبال.")}</small></section>
-      <form onSubmit={submit}>
-        <button className="login-language" type="button" onClick={() => changeLocale(locale === "en" ? "ar" : "en")}>{locale === "en" ? "العربية" : "English"}</button><p>{tr(locale,"OFFICE PORTAL","بوابة المكتب")}</p><h2>{tr(locale,"Welcome back","مرحباً بعودتك")}</h2><span>{tr(locale,"Sign in with your assigned account.","سجّل الدخول بالحساب المخصص لك.")}</span>
+      <form onSubmit={resetMode ? (event) => { event.preventDefault(); void requestReset(); } : submit}>
+        <button className="login-language" type="button" onClick={() => changeLocale(locale === "en" ? "ar" : "en")}>{locale === "en" ? "العربية" : "English"}</button><p>{tr(locale,"OFFICE PORTAL","بوابة المكتب")}</p><h2>{resetMode ? tr(locale,"Reset password","إعادة كلمة المرور") : tr(locale,"Welcome back","مرحباً بعودتك")}</h2><span>{resetMode ? tr(locale,"Enter your username to send a reset request to the administrator.","أدخل اسم المستخدم لإرسال طلب إعادة كلمة المرور إلى المسؤول.") : tr(locale,"Sign in with your assigned account.","سجّل الدخول بالحساب المخصص لك.")}</span>
         {message && <div className="office-login-error">{message}</div>}
         <label>{tr(locale,"Username","اسم المستخدم")}<input value={username} onChange={(event) => setUsername(event.target.value)} autoComplete="username" required /></label>
-        <label>{tr(locale,"Password","كلمة المرور")}<span className="password-field"><input type={showPassword ? "text" : "password"} value={password} onChange={(event) => setPassword(event.target.value)} autoComplete="current-password" required /><button type="button" onClick={() => setShowPassword((shown) => !shown)} aria-label={tr(locale,"Show or hide password","إظهار أو إخفاء كلمة المرور")}>{showPassword ? "◉" : "◌"}</button></span></label>
-        <button disabled={busy}>{busy ? tr(locale,"Signing in…","جارٍ تسجيل الدخول…") : tr(locale,"Sign in","تسجيل الدخول")}</button>
-        <div className="login-help"><button type="button" disabled={busy || resetSent} onClick={requestReset}>{tr(locale,"Reset password","طلب إعادة كلمة المرور")}</button><button type="button" disabled={busy || resetSent} onClick={requestReset}>{tr(locale,"Forgot password?","نسيت كلمة المرور؟")}</button></div>
+        {!resetMode && <label>{tr(locale,"Password","كلمة المرور")}<span className="password-field"><input type={showPassword ? "text" : "password"} value={password} onChange={(event) => setPassword(event.target.value)} autoComplete="current-password" required /><button type="button" onClick={() => setShowPassword((shown) => !shown)} aria-label={tr(locale,"Show or hide password","إظهار أو إخفاء كلمة المرور")}>{showPassword ? "◉" : "◌"}</button></span></label>}
+        <button disabled={busy || (resetMode && resetSent)}>{busy ? tr(locale,"Please wait…","يرجى الانتظار…") : resetMode ? tr(locale,"Send reset request","إرسال طلب إعادة التعيين") : tr(locale,"Sign in","تسجيل الدخول")}</button>
+        <div className="login-help">{resetMode ? <button type="button" onClick={() => { setResetMode(false); setResetSent(false); setMessage(""); }}>{tr(locale,"Back to sign in","العودة لتسجيل الدخول")}</button> : <button type="button" onClick={() => { setResetMode(true); setMessage(""); }}>{tr(locale,"Reset password","طلب إعادة كلمة المرور")}</button>}</div>
       </form>
     </main>
   );

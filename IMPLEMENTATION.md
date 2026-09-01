@@ -1,6 +1,6 @@
 # Laundry Operations Platform — implementation guide
 
-Updated: 30 August 2026
+Updated: 1 September 2026
 
 ## Roles and authentication
 
@@ -11,6 +11,8 @@ JWT authentication uses an HttpOnly, SameSite=Strict cookie with an eight-hour e
 - `super_admin`: all admin rights plus technical accounts/platform controls.
 
 Login inputs include a show/hide password control. A staff reset/forgot-password action creates an admin inbox request without revealing whether a username exists. An admin sets a temporary password or denies the request. Production should require the staff member to change the temporary password at first login.
+
+In the Office login, Reset Password switches to a dedicated request mode containing only the username field. The password input and sign-in action stay hidden until the user returns to sign-in mode.
 
 ## Office functional flow
 
@@ -46,6 +48,8 @@ The API checks both expiry and scope on every operation. A collection-read grant
 ## Admin portal
 
 The blue-and-white Admin portal is responsive across desktop, tablet, and mobile, including contained scroll for dense tables and touch-size controls. English and Arabic are available; Arabic switches portal direction to RTL.
+
+The Admin shell is viewport-locked: its navigation remains fixed while only the active content pane scrolls. The selected Admin section is stored as a device-local preference and restored after refresh, with role validation falling back to Dashboard if the saved section is not authorized. Report filters remain open on desktop and start collapsed on tablet/mobile, where a Show/Hide Filters control exposes them on demand.
 
 Admin capabilities include dashboard analytics; paginated/filterable reports; cash/card and STC/ANB classification; paid/partial/unpaid filtering; PDF/CSV/Excel-compatible export; category/item/effective-price CRUD; customer CRUD and purchase drill-down; expenses; users; shop identity/settings; CSV import; permission approvals; and staff password-reset fulfillment.
 

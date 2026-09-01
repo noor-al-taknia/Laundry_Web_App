@@ -38,7 +38,11 @@ const navigation: Array<{ id: AdminView; label: string; labelAr: string; icon: s
 export default function AdminPortal() {
   const [data, setData] = useState<BootstrapData | null>(null);
   const [loading, setLoading] = useState(true);
-  const [view, setView] = useState<AdminView>("dashboard");
+  const [view, setView] = useState<AdminView>(() => {
+    if (typeof window === "undefined") return "dashboard";
+    const saved = localStorage.getItem("laundry-admin-view") as AdminView | null;
+    return saved && navigation.some((item) => item.id === saved) ? saved : "dashboard";
+  });
   const [error, setError] = useState("");
   const [locale, setLocale] = useState<Locale>(() => typeof window !== "undefined" && localStorage.getItem("laundry-admin-locale") === "ar" ? "ar" : "en");
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
@@ -46,6 +50,11 @@ export default function AdminPortal() {
   function changeLocale(next: Locale) {
     setLocale(next);
     localStorage.setItem("laundry-admin-locale", next);
+  }
+
+  function changeView(next: AdminView) {
+    setView(next);
+    localStorage.setItem("laundry-admin-view", next);
   }
 
   const load = useCallback(async () => {
@@ -79,28 +88,29 @@ export default function AdminPortal() {
   }
 
   const allowedNavigation = navigation.filter((item) => !item.superOnly || data.user.portalRole === "super_admin");
+  const activeView = allowedNavigation.some((item) => item.id === view) ? view : "dashboard";
   return (
     <main className="admin-shell" dir={locale === "ar" ? "rtl" : "ltr"} lang={locale}>
       {mobileNavOpen && <button className="admin-nav-scrim no-print" aria-label="Close navigation" onClick={() => setMobileNavOpen(false)} />}
       <aside className={`admin-nav no-print ${mobileNavOpen ? "mobile-open" : ""}`}>
         <div className="admin-brand"><span>PL</span><div><b>{data.shop.shopName}</b><small>Admin portal</small></div></div>
-        <nav>{allowedNavigation.map((item) => <button key={item.id} className={view === item.id ? "active" : ""} onClick={() => { setView(item.id); setMobileNavOpen(false); }}><i>{item.icon}</i>{locale === "ar" ? item.labelAr : item.label}</button>)}</nav>
+        <nav>{allowedNavigation.map((item) => <button key={item.id} className={activeView === item.id ? "active" : ""} onClick={() => { changeView(item.id); setMobileNavOpen(false); }}><i>{item.icon}</i>{locale === "ar" ? item.labelAr : item.label}</button>)}</nav>
         <Link className="office-link" href="/">↗ {tr(locale, "Open office portal", "فتح بوابة المكتب")}</Link>
         <div className="admin-user"><span>{data.user.displayName.slice(0, 2).toUpperCase()}</span><div><b>{data.user.displayName}</b><small>{data.user.portalRole.replaceAll("_", " ")}</small></div><button onClick={logout}>↗</button></div>
       </aside>
       <section className="admin-main">
-        <header className="admin-topbar no-print"><button className="admin-menu-trigger" onClick={() => setMobileNavOpen(true)} aria-label={tr(locale, "Open navigation", "فتح القائمة")}>☰</button><div><span>{tr(locale, "ADMIN WORKSPACE", "مساحة إدارة المتجر")}</span><b>{locale === "ar" ? navigation.find((item) => item.id === view)?.labelAr : navigation.find((item) => item.id === view)?.label}</b></div><div className="admin-top-actions"><div className="language-switch" aria-label="Language"><button className={locale === "en" ? "active" : ""} onClick={() => changeLocale("en")}>EN</button><button className={locale === "ar" ? "active" : ""} onClick={() => changeLocale("ar")}>ع</button></div><div className={`admin-role ${data.user.portalRole}`}>{data.user.portalRole.replaceAll("_", " ")}</div></div></header>
+        <header className="admin-topbar no-print"><button className="admin-menu-trigger" onClick={() => setMobileNavOpen(true)} aria-label={tr(locale, "Open navigation", "فتح القائمة")}>☰</button><div><span>{tr(locale, "ADMIN WORKSPACE", "مساحة إدارة المتجر")}</span><b>{locale === "ar" ? navigation.find((item) => item.id === activeView)?.labelAr : navigation.find((item) => item.id === activeView)?.label}</b></div><div className="admin-top-actions"><div className="language-switch" aria-label="Language"><button className={locale === "en" ? "active" : ""} onClick={() => changeLocale("en")}>EN</button><button className={locale === "ar" ? "active" : ""} onClick={() => changeLocale("ar")}>ع</button></div><div className={`admin-role ${data.user.portalRole}`}>{data.user.portalRole.replaceAll("_", " ")}</div></div></header>
         {error && <div className="admin-alert">{error}</div>}
-        {view === "dashboard" && <AnalyticsDashboard data={data} locale={locale} />}
-        {view === "reports" && <Reports user={data.user} initialOrders={data.recentOrders} initialRange={data.reportRange} initialTotal={data.reportTotal} initialSummary={data.reportSummary} onChanged={load} />}
-        {view === "expenses" && <AdminExpenses locale={locale} />}
-        {view === "catalog" && <CatalogAdmin catalog={data.catalog} refresh={load} />}
-        {view === "customers" && <CustomersAdmin customers={data.customers} refresh={load} />}
-        {view === "imports" && <DataImportAdmin refresh={load} />}
-        {view === "requests" && data.admin && <ApprovalInbox permissionRequests={data.admin.permissionRequests} passwordRequests={data.admin.passwordResetRequests} refresh={load} locale={locale} />}
-        {view === "team" && data.admin && <TeamAdmin users={data.admin.users} grants={data.admin.grants} debts={data.admin.staffDebts} refresh={load} />}
-        {view === "settings" && <SettingsAdmin shop={data.shop} refresh={load} />}
-        {view === "platform" && data.user.portalRole === "super_admin" && <PlatformControls data={data} locale={locale} />}
+        {activeView === "dashboard" && <AnalyticsDashboard data={data} locale={locale} />}
+        {activeView === "reports" && <Reports user={data.user} initialOrders={data.recentOrders} initialRange={data.reportRange} initialTotal={data.reportTotal} initialSummary={data.reportSummary} onChanged={load} />}
+        {activeView === "expenses" && <AdminExpenses locale={locale} />}
+        {activeView === "catalog" && <CatalogAdmin catalog={data.catalog} refresh={load} />}
+        {activeView === "customers" && <CustomersAdmin customers={data.customers} refresh={load} />}
+        {activeView === "imports" && <DataImportAdmin refresh={load} />}
+        {activeView === "requests" && data.admin && <ApprovalInbox permissionRequests={data.admin.permissionRequests} passwordRequests={data.admin.passwordResetRequests} refresh={load} locale={locale} />}
+        {activeView === "team" && data.admin && <TeamAdmin users={data.admin.users} grants={data.admin.grants} debts={data.admin.staffDebts} refresh={load} />}
+        {activeView === "settings" && <SettingsAdmin shop={data.shop} refresh={load} />}
+        {activeView === "platform" && data.user.portalRole === "super_admin" && <PlatformControls data={data} locale={locale} />}
       </section>
     </main>
   );
