@@ -18,7 +18,9 @@ In the Office login, Reset Password switches to a dedicated request mode contain
 
 The Office portal deliberately has no side navigation. Its top-level tabs are **Sales**, **Expenses**, and **Collections**, with language and profile/logout controls.
 
-Sales fills the screen with searchable customer selection, large category controls on the right, and large item controls whose color is consistent within a category. The server reloads authoritative prices, computes 15% VAT, stores invoice snapshots, and allocates date-scoped tokens such as `T-260830-0007`.
+Sales fills the screen with searchable customer selection, large category controls on the right, and large item controls whose color is consistent within a category. After customer and staff entry, the party panel can be collapsed to return space to the item grid. The server reloads authoritative prices, computes 15% VAT, stores invoice snapshots, and allocates date-scoped tokens such as `T-260830-0007`.
+
+Saved orders appear as recent-order cards. Selecting a card opens the canonical order detail with customer/contact data, assigned and creating staff, dates, every item snapshot, totals, payment/settlement data, notes, and the audit-event history. The same detail is reached from collection rows and the global search. Search matches token number, invoice number, customer name, or customer phone. An authorized user can update payment, receiving account, cash settlement, and notes using optimistic version checks, then print the updated invoice. Historical updates continue through the exact-order permission workflow.
 
 Every new bill also requires an active staff selection. Admin creates the staff login/profile and maintains mobile, passport number/validity, visa status/validity, and Iqama number/validity. The Office dropdown exposes only the name and mobile; passport, visa and Iqama fields remain in the authorized Admin portal.
 
@@ -30,9 +32,9 @@ Payment is presented as **Card/Cash**:
 - A non-zero **From staff** value automatically creates a company receivable linked to the exact staff member and order. Admin can review and settle this debt ledger; voiding an open test/order debt voids the corresponding receivable without deleting its audit trail.
 - Paid, partial, and unpaid states are derived server-side.
 
-The bill preview stays off the sales screen. Save & Print opens the browser print dialog and prints only the 80 mm invoice. Every invoice contains the Saudi VAT TLV QR, and the token is rendered with a heavy black border and bold type for quick recognition.
+The bill preview stays off the sales screen. Save & Print opens the browser print dialog and prints only the 80 mm invoice. Every invoice contains the Saudi VAT TLV QR, and the token is rendered as bold black text inside an outlined, lightly shaded highlight so thermal printers cannot turn it into an unreadable solid block.
 
-Expenses shows a daily table and an Add Expense form. Collections shows daily sales, collected amount, outstanding balance, token rows, payment edits, and audit-safe **Void**. Financial orders are never hard deleted.
+Expenses shows a daily table and an Add Expense form. Collections shows daily sales, collected amount, outstanding balance, token rows, detail access, and payment edits. The user-facing destructive action is named **Cancel order** and explains that the order leaves collection totals while its audit history remains. Internally this remains an audit-safe void state; financial orders are never hard deleted.
 
 ## Time-limited staff permissions
 
