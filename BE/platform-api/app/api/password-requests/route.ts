@@ -4,6 +4,7 @@ import { json, payload, requireSameOrigin, route, textValue } from "../../../lib
 import { hashPassword } from "../../../lib/crypto";
 import { ensureDatabase } from "../../../lib/database";
 import { numericId } from "../../../lib/id";
+import { notifyAdmins } from "../../../lib/notifications";
 
 export async function GET(request: Request) {
   return route(async () => {
@@ -28,16 +29,25 @@ export async function POST(request: Request) {
     const username = textValue(body.username, 80).toLowerCase();
     if (username) {
       const user = await getD1().prepare(
-        "SELECT id, role FROM users WHERE username = ? AND is_active = 1",
-      ).bind(username).first<{ id: number; role: string }>();
+        "SELECT id, display_name AS displayName, role FROM users WHERE username = ? AND is_active = 1",
+      ).bind(username).first<{ id: number; displayName: string; role: string }>();
       if (user?.role === "staff") {
         const pending = await getD1().prepare(
           "SELECT id FROM password_reset_requests WHERE user_id = ? AND status = 'pending' LIMIT 1",
         ).bind(user.id).first();
         if (!pending) {
+          const requestId = numericId();
           await getD1().prepare(
             "INSERT INTO password_reset_requests (id, user_id) VALUES (?, ?)",
-          ).bind(numericId(), user.id).run();
+          ).bind(requestId, user.id).run();
+          await notifyAdmins({
+            actorUserId: user.id,
+            eventType: "password_reset_requested",
+            title: "Staff password reset requested",
+            message: `${user.displayName} requested a new Office portal password. Review the request in Approval inbox.`,
+            resourceType: "password_request",
+            resourceId: requestId,
+          });
         }
       }
     }

@@ -186,6 +186,20 @@ export type PasswordResetRequest = {
   completedAt: string | null;
 };
 
+export type AdminNotification = {
+  id: number;
+  actorUserId: number;
+  actorName: string;
+  eventType: string;
+  title: string;
+  message: string;
+  resourceType: "order" | "expense" | "permission" | "password_request" | "";
+  resourceId: string;
+  isRead: boolean;
+  readAt: string | null;
+  createdAt: string;
+};
+
 export type BootstrapData = {
   user: User;
   shop: Shop;

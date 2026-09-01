@@ -13,6 +13,7 @@ import {
 } from "../../../lib/api";
 import { ensureDatabase } from "../../../lib/database";
 import { numericId } from "../../../lib/id";
+import { notifyAdmins } from "../../../lib/notifications";
 import { canReadRange, canWriteExpense } from "../../../lib/permissions";
 
 const selectExpense = `SELECT e.id, e.expense_number AS expenseNumber,
@@ -110,6 +111,16 @@ export async function POST(request: Request) {
       user.id,
     ).run();
     const expense = await getD1().prepare(`${selectExpense} WHERE e.id = ?`).bind(id).first();
+    if (user.role === "staff") {
+      await notifyAdmins({
+        actorUserId: user.id,
+        eventType: "expense_created",
+        title: `Expense added · ${expenseNumber}`,
+        message: `${user.displayName} recorded SAR ${amount.toFixed(2)} for ${category}: ${description}. Payment method: ${String(body.paymentMethod ?? "cash")}.`,
+        resourceType: "expense",
+        resourceId: id,
+      });
+    }
     return json({ expense }, 201);
   });
 }
@@ -121,7 +132,7 @@ export async function PATCH(request: Request) {
     const user = await requireSession(request);
     const body = await payload<Record<string, unknown>>(request);
     const id = Number(body.id);
-    const current = await getD1().prepare("SELECT expense_date AS expenseDate, version FROM expenses WHERE id = ?").bind(id).first<{ expenseDate: string; version: number }>();
+    const current = await getD1().prepare("SELECT expense_number AS expenseNumber, expense_date AS expenseDate, amount, description, version FROM expenses WHERE id = ?").bind(id).first<{ expenseNumber: string; expenseDate: string; amount: number; description: string; version: number }>();
     if (!current) return json({ error: "Expense not found" }, 404);
     if (!(await canWriteExpense(user, current.expenseDate, id))) {
       return json({ error: "Admin approval is required to edit this historical expense." }, 403);
@@ -151,6 +162,16 @@ export async function PATCH(request: Request) {
     ).run();
     if (!result.meta.changes) return json({ error: "Expense changed elsewhere. Reload and retry." }, 409);
     const expense = await getD1().prepare(`${selectExpense} WHERE e.id = ?`).bind(id).first();
+    if (user.role === "staff") {
+      await notifyAdmins({
+        actorUserId: user.id,
+        eventType: "expense_updated",
+        title: `Expense updated · ${current.expenseNumber}`,
+        message: `${user.displayName} changed ${current.description} (SAR ${Number(current.amount).toFixed(2)}) to ${description} (SAR ${amount.toFixed(2)}).`,
+        resourceType: "expense",
+        resourceId: id,
+      });
+    }
     return { expense };
   });
 }

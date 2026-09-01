@@ -16,6 +16,7 @@ import { ensureDatabase } from "../../../lib/database";
 import { getOrderDetail, getOrders } from "../../../lib/data";
 import { numericId } from "../../../lib/id";
 import { formatOrderToken } from "../../../lib/token";
+import { notifyAdmins } from "../../../lib/notifications";
 import {
   canReadRange,
   canWriteOrderDate,
@@ -357,6 +358,16 @@ export async function POST(request: Request) {
       );
     }
     await db.batch(statements);
+    if (user.role === "staff") {
+      await notifyAdmins({
+        actorUserId: user.id,
+        eventType: "order_created",
+        title: `New order ${tokenNumber}`,
+        message: `${user.displayName} created ${invoiceNumber} for ${customer.name}. Total SAR ${totalAmount.toFixed(2)} · ${paymentStatus} · ${paymentMethod}${cardAccount ? ` (${cardAccount.toUpperCase()})` : ""}.`,
+        resourceType: "order",
+        resourceId: orderId,
+      });
+    }
     const detail = await getOrderDetail(orderId);
     return json({ order: detail }, 201);
   });
@@ -385,7 +396,8 @@ export async function PATCH(request: Request) {
     const db = getD1();
     const current = await db
       .prepare(
-        `SELECT id, order_date AS orderDate, payment_status AS paymentStatus,
+        `SELECT id, COALESCE(token_number, invoice_number) AS tokenNumber, invoice_number AS invoiceNumber,
+                customer_name AS customerName, order_date AS orderDate, payment_status AS paymentStatus,
                 payment_method AS paymentMethod, amount_paid AS amountPaid,
                 card_account AS cardAccount, cash_received AS cashReceived,
                 balance_settled_by_staff AS balanceSettledByStaff,
@@ -398,6 +410,9 @@ export async function PATCH(request: Request) {
       .bind(id)
       .first<{
         id: number;
+        tokenNumber: string;
+        invoiceNumber: string;
+        customerName: string;
         orderDate: string;
         paymentStatus: string;
         paymentMethod: string;
@@ -524,6 +539,16 @@ export async function PATCH(request: Request) {
         JSON.stringify({ paymentStatus, paymentMethod, amountPaid }),
       )
       .run();
+    if (user.role === "staff") {
+      await notifyAdmins({
+        actorUserId: user.id,
+        eventType: "order_payment_updated",
+        title: `Payment updated · ${current.tokenNumber}`,
+        message: `${user.displayName} changed ${current.invoiceNumber} for ${current.customerName}: ${current.paymentStatus} (SAR ${Number(current.amountPaid).toFixed(2)}) → ${paymentStatus} (SAR ${amountPaid.toFixed(2)}), using ${paymentMethod}${cardAccount ? ` · ${cardAccount.toUpperCase()}` : ""}.`,
+        resourceType: "order",
+        resourceId: id,
+      });
+    }
     return { detail: await getOrderDetail(id) };
   });
 }
@@ -536,8 +561,8 @@ export async function DELETE(request: Request) {
     const body = await payload<{ id?: number; version?: number }>(request);
     const id = Number(body.id ?? 0);
     const current = await getD1().prepare(
-      "SELECT id, order_date AS orderDate, version, order_status AS orderStatus FROM orders WHERE id = ?",
-    ).bind(id).first<{ id: number; orderDate: string; version: number; orderStatus: string }>();
+      "SELECT id, COALESCE(token_number, invoice_number) AS tokenNumber, invoice_number AS invoiceNumber, customer_name AS customerName, order_date AS orderDate, version, order_status AS orderStatus FROM orders WHERE id = ?",
+    ).bind(id).first<{ id: number; tokenNumber: string; invoiceNumber: string; customerName: string; orderDate: string; version: number; orderStatus: string }>();
     if (!current || current.orderStatus === "void") return json({ error: "Active order not found." }, 404);
     if (!(await canWriteOrderDate(user, current.orderDate, id))) {
       return json({ error: "Admin approval is required to void this historical order." }, 403);
@@ -557,6 +582,16 @@ export async function DELETE(request: Request) {
        settled_by = ?, settled_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP
        WHERE order_id = ? AND status = 'open'`,
     ).bind(user.id, id).run();
+    if (user.role === "staff") {
+      await notifyAdmins({
+        actorUserId: user.id,
+        eventType: "order_cancelled",
+        title: `Order cancelled · ${current.tokenNumber}`,
+        message: `${user.displayName} cancelled ${current.invoiceNumber} for ${current.customerName}. The order remains available in the audit history.`,
+        resourceType: "order",
+        resourceId: id,
+      });
+    }
     return { ok: true };
   });
 }

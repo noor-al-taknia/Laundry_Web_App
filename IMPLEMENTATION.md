@@ -56,6 +56,12 @@ The Admin shell is viewport-locked: its navigation remains fixed while only the 
 
 Admin capabilities include dashboard analytics; paginated/filterable reports; cash/card and STC/ANB classification; paid/partial/unpaid filtering; PDF/CSV/Excel-compatible export; category/item/effective-price CRUD; customer CRUD and purchase drill-down; expenses; users; shop identity/settings; CSV import; permission approvals; and staff password-reset fulfillment.
 
+### Staff activity notifications
+
+Every staff business mutation creates a durable notification for each active Admin and Super-admin account. Covered events include order creation, payment/settlement updates, order cancellation, expense creation/update, task-permission requests, and password-reset requests. Notifications contain the staff member, affected token/invoice or expense reference, amount/status/method change, and timestamp. User-entered values are stored as bounded plain text and never rendered as HTML.
+
+The Admin header polls the notification endpoint every 20 seconds and shows an unread badge. The notification panel supports individual read state and **Mark all read**. Selecting an item marks only that recipient's copy as read and routes to Sales reports, Expenses, or Approval inbox. Read state is isolated per admin account; one administrator reading an event does not clear it for another administrator. Operational reads such as opening a report do not create notifications, preventing alert noise and unintended activity tracking.
+
 Report tables, details and exports include card receiving account, cash received, staff-funded amount, drawer/wallet-funded amount, and assigned staff. Admin payment CRUD uses the same fields and keeps the staff receivable ledger synchronized.
 
 Only admin/super-admin can change shop name, address, contact, email and VAT number used on every bill. Super-admin-only operations remain isolated at the API.
@@ -65,6 +71,8 @@ Only admin/super-admin can change shop name, address, contact, email and VAT num
 Category → service item → effective-dated price is the catalog relationship. Customer master records are referenced by orders, while each order keeps customer, shop, price and VAT snapshots so old invoices do not change when master data changes.
 
 Order tokens, invoice numbers and usernames are unique. Money/status/method fields have database checks. Updates use optimistic versions to reject stale browser writes. Order events record payment changes and voids. Prepared statements, same-origin mutation checks and server-side calculations prevent browser values from becoming authoritative.
+
+`admin_notifications` is append-oriented and references both the recipient and staff actor. Foreign keys preserve actor attribution, cascade only when a recipient account is removed, and indexed recipient/read/time fields keep unread polling bounded. Notification writes occur after the corresponding validated business write.
 
 Zustand owns the Office section, active category, customer and cart draft. Only non-sensitive draft state is session-persisted; server data is fetched again after writes. The server/database remains the source of truth.
 

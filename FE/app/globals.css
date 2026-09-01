@@ -1922,6 +1922,26 @@ label {
 .admin-main { height: 100dvh; min-width: 0; overflow-y: auto; overscroll-behavior: contain; }
 .admin-topbar { align-items: center; background: #fff; border-bottom: 1px solid #dce5f2; display: flex; height: 66px; justify-content: space-between; padding: 0 28px; position: sticky; top: 0; z-index: 90; }
 .admin-top-actions { align-items: center; display: flex; gap: 10px; }
+.admin-notification-center { position: relative; }
+.admin-notification-trigger { align-items: center; background: #f4f7fb; border: 1px solid #dce5f2; border-radius: 9px; color: #1e3a8a; display: flex; font-size: 15px; height: 38px; justify-content: center; position: relative; width: 40px; }
+.admin-notification-trigger > b { align-items: center; background: #dc2626; border: 2px solid #fff; border-radius: 20px; color: #fff; display: flex; font-size: 8px; height: 18px; justify-content: center; min-width: 18px; padding: 0 3px; position: absolute; right: -6px; top: -6px; }
+.admin-notification-panel { background: #fff; border: 1px solid #d8e2ef; border-radius: 14px; box-shadow: 0 20px 55px rgba(15,23,42,.2); max-height: min(640px, calc(100vh - 90px)); overflow: hidden; position: absolute; right: 0; top: 47px; width: min(430px, calc(100vw - 28px)); z-index: 160; }
+.admin-notification-panel > header { align-items: center; border-bottom: 1px solid #e8edf4; display: flex; justify-content: space-between; padding: 14px 15px; }
+.admin-notification-panel > header > div { display: grid; gap: 2px; }
+.admin-notification-panel > header b { font-size: 13px; }
+.admin-notification-panel > header span { color: #64748b; font-size: 9px; }
+.admin-notification-panel > header > button { background: transparent; border: 0; color: #1d4ed8; font-size: 10px; font-weight: 800; }
+.admin-notification-panel > div { max-height: min(560px, calc(100vh - 150px)); overflow-y: auto; }
+.admin-notification-panel > div > button { align-items: start; background: #fff; border: 0; border-bottom: 1px solid #edf1f6; color: #14213d; cursor: pointer; display: grid; font: inherit; gap: 10px; grid-template-columns: 30px minmax(0,1fr) 8px; padding: 13px 14px; text-align: start; width: 100%; }
+.admin-notification-panel > div > button.unread { background: #f2f7ff; }
+.admin-notification-panel > div > button:hover { background: #eaf2ff; }
+.admin-notification-panel > div > button > i { align-items: center; background: #dbeafe; border-radius: 8px; color: #1d4ed8; display: flex; font-size: 13px; font-style: normal; height: 30px; justify-content: center; width: 30px; }
+.admin-notification-panel > div > button > span { display: grid; gap: 4px; }
+.admin-notification-panel > div > button b { font-size: 11px; }
+.admin-notification-panel > div > button p { color: #475569; font-size: 10px; line-height: 1.45; margin: 0; }
+.admin-notification-panel > div > button small { color: #94a3b8; font-size: 9px; }
+.admin-notification-panel > div > button em { align-self: center; background: #2563eb; border-radius: 50%; height: 7px; width: 7px; }
+.notification-empty { color: #64748b; font-size: 11px; margin: 0; padding: 30px 15px; text-align: center; }
 .admin-menu-trigger { background: transparent; border: 0; color: #1d4ed8; display: none; font-size: 23px; height: 42px; width: 42px; }
 .language-switch { background: #edf3ff; border-radius: 9px; display: flex; padding: 3px; }
 .language-switch button { background: transparent; border: 0; border-radius: 7px; color: #64748b; font-size: 10px; font-weight: 850; min-height: 30px; min-width: 32px; }
@@ -2025,6 +2045,7 @@ label {
   .admin-topbar { gap: 6px; padding: 0 10px; position: sticky; top: 0; z-index: 90; }
   .admin-topbar > div:nth-child(2) { flex: 1; min-width: 0; }
   .admin-role { display: none; }
+  .admin-notification-panel { position: fixed; right: 10px; top: 58px; width: calc(100vw - 20px); }
   .analytics-metrics, .analytics-grid, .platform-grid { grid-template-columns: 1fr; }
   .admin-page-title { align-items: start; flex-direction: column; gap: 12px; }
   .admin-recent > div { grid-template-columns: 1fr 1fr; }
@@ -2038,11 +2059,14 @@ label {
 [dir="rtl"] .admin-recent > div em, [dir="rtl"] .mix-row b, [dir="rtl"] .office-total, [dir="rtl"] .expense-total, [dir="rtl"] .token-card { text-align: left; }
 [dir="rtl"] .category-rail { border-left: 0; border-right: 1px solid #dce5f2; }
 [dir="rtl"] .profile-menu { left: 0; right: auto; }
+[dir="rtl"] .admin-notification-panel { left: 0; right: auto; }
+[dir="rtl"] .admin-notification-trigger > b { left: -6px; right: auto; }
 [dir="rtl"] .token-results { left: 28px; right: auto; }
 [dir="rtl"] .office-customer-results button { text-align: right; }
 @media (max-width: 680px) {
   [dir="rtl"] .admin-nav { left: auto; right: 0; transform: translateX(105%); }
   [dir="rtl"] .admin-nav.mobile-open { transform: translateX(0); }
+  [dir="rtl"] .admin-notification-panel { left: 10px; right: auto; }
 }
 
 @media print {

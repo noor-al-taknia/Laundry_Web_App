@@ -10,7 +10,7 @@ admin-portal ──┘                              ├─ settings-service
                                               ├─ customer-service
                                               ├─ order-service ──┐
                                               └─ expense-service ├─ events → reporting-service
-                                                                ┘
+                                                                └─ events → notification-service
 ```
 
 The gateway validates the browser JWT, adds trusted user, tenant and role claims
@@ -28,6 +28,7 @@ allowlisted service bindings. Each service still authorizes every operation.
 | order-service | sequences, orders, assigned staff, staff-debt ledger, snapshots, audit/outbox | live prices |
 | expense-service | expenses and expense outbox | report aggregates |
 | reporting-service | projections, metrics, event inbox | source writes |
+| notification-service | per-admin activity notifications, unread state, event inbox | order/expense source records |
 
 Every extracted owned table contains `tenant_id`. IDs are globally unique
 strings so events can cross database boundaries safely.
@@ -42,9 +43,20 @@ strings so events can cross database boundaries safely.
 5. Outbox delivery retries until Reporting accepts the event.
 6. Reporting records the event ID before updating projections, making replay
    idempotent.
+7. Staff-authored business events are also delivered to Notification, which
+   creates one recipient-isolated notification for each active administrator.
 
 Reporting is eventually consistent. Token lookup and invoice reprint use Order
 directly and remain strongly consistent.
+
+## Notification flow
+
+The runnable compatibility API writes bounded plain-text notifications after a
+validated staff mutation. In the extracted architecture, Order, Expense and
+Identity/Permission publish outbox events; Notification consumes each event
+once through its event inbox. Admin polling is recipient-scoped and indexed by
+tenant, user, unread state and time. Mark-read mutations can affect only the
+authenticated recipient.
 
 ## Evolution rules
 

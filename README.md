@@ -12,7 +12,7 @@ FE/
   contracts/           Frontend API types
 BE/
   platform-api/        Runnable compatibility API and database migrations
-  services/            Seven independently owned target microservices
+  services/            Eight independently owned target microservices
   contracts/           Backend contract package
 app/                   Thin combined-host deployment adapter only
 docs/                  Architecture, split and CSV guidance
@@ -80,3 +80,4 @@ This validates frontend types/lint/build, backend types/lint/tests/build, and th
 - [Architecture and data ownership](./docs/ARCHITECTURE.md)
 - [Repository split runbook](./docs/REPOSITORY_SPLIT.md)
 - [CSV import rules](./docs/CSV_IMPORT.md)
+- [Simple portal user guide](./docs/PORTAL_USER_GUIDE.md)

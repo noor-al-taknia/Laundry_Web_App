@@ -3,6 +3,7 @@ import { requireSession } from "../../../lib/auth";
 import { json, payload, requireSameOrigin, route, textValue } from "../../../lib/api";
 import { ensureDatabase } from "../../../lib/database";
 import { numericId } from "../../../lib/id";
+import { notifyAdmins } from "../../../lib/notifications";
 
 const requestSelect = `SELECT p.id, p.staff_user_id AS staffUserId,
   u.display_name AS staffName, p.task, p.resource_type AS resourceType,
@@ -56,6 +57,14 @@ export async function POST(request: Request) {
        (id, staff_user_id, task, resource_type, resource_id, reason)
        VALUES (?, ?, ?, ?, ?, ?)`,
     ).bind(id, user.id, task, resourceType, resourceId, textValue(body.reason, 300)).run();
+    await notifyAdmins({
+      actorUserId: user.id,
+      eventType: "permission_requested",
+      title: "Staff permission requested",
+      message: `${user.displayName} requested ${task.replaceAll("_", " ")} access for ${resourceType.replaceAll("_", " ")} ${resourceId}.${body.reason ? ` Reason: ${textValue(body.reason, 300)}` : ""}`,
+      resourceType: "permission",
+      resourceId: id,
+    });
     return json({ ok: true, id, status: "pending" }, 201);
   });
 }

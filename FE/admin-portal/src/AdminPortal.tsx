@@ -11,7 +11,7 @@ import {
 } from "../../app/components/Admin";
 import { Reports } from "../../app/components/Reports";
 import { api, ApiError } from "../../app/client";
-import type { BootstrapData, Expense, PasswordResetRequest, PermissionRequest, User } from "../../contracts/src";
+import type { AdminNotification, BootstrapData, Expense, PasswordResetRequest, PermissionRequest, User } from "../../contracts/src";
 
 type AdminView = "dashboard" | "reports" | "expenses" | "catalog" | "customers" | "imports" | "requests" | "team" | "settings" | "platform";
 type Locale = "en" | "ar";
@@ -46,6 +46,9 @@ export default function AdminPortal() {
   const [error, setError] = useState("");
   const [locale, setLocale] = useState<Locale>(() => typeof window !== "undefined" && localStorage.getItem("laundry-admin-locale") === "ar" ? "ar" : "en");
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
+  const [notificationOpen, setNotificationOpen] = useState(false);
+  const [notifications, setNotifications] = useState<AdminNotification[]>([]);
+  const [unreadCount, setUnreadCount] = useState(0);
 
   function changeLocale(next: Locale) {
     setLocale(next);
@@ -70,11 +73,51 @@ export default function AdminPortal() {
     }
   }, []);
 
+  const loadNotifications = useCallback(async () => {
+    try {
+      const result = await api<{ notifications: AdminNotification[]; unreadCount: number }>("/api/notifications?limit=40");
+      setNotifications(result.notifications);
+      setUnreadCount(result.unreadCount);
+    } catch (caught) {
+      if (!(caught instanceof ApiError && caught.status === 401)) {
+        setError(caught instanceof Error ? caught.message : "Notifications could not be loaded");
+      }
+    }
+  }, []);
+
   useEffect(() => {
     // Initial data synchronization with the backend.
     // eslint-disable-next-line react-hooks/set-state-in-effect
     void load();
   }, [load]);
+
+  const adminUserId = data?.user.role === "admin" ? data.user.id : null;
+  useEffect(() => {
+    if (!adminUserId) return;
+    // Polling keeps the owner informed without requiring page refreshes.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    void loadNotifications();
+    const timer = window.setInterval(() => void loadNotifications(), 20_000);
+    return () => window.clearInterval(timer);
+  }, [adminUserId, loadNotifications]);
+
+  async function openNotification(notification: AdminNotification) {
+    if (!notification.isRead) {
+      await api("/api/notifications", { method: "PATCH", body: JSON.stringify({ id: notification.id }) });
+      setNotifications((current) => current.map((item) => item.id === notification.id ? { ...item, isRead: true } : item));
+      setUnreadCount((current) => Math.max(0, current - 1));
+    }
+    if (notification.resourceType === "order") changeView("reports");
+    if (notification.resourceType === "expense") changeView("expenses");
+    if (notification.resourceType === "permission" || notification.resourceType === "password_request") changeView("requests");
+    setNotificationOpen(false);
+  }
+
+  async function markAllNotificationsRead() {
+    await api("/api/notifications", { method: "PATCH", body: JSON.stringify({ all: true }) });
+    setNotifications((current) => current.map((item) => ({ ...item, isRead: true })));
+    setUnreadCount(0);
+  }
 
   async function logout() {
     await api("/api/auth/logout", { method: "POST", body: "{}" });
@@ -99,7 +142,7 @@ export default function AdminPortal() {
         <div className="admin-user"><span>{data.user.displayName.slice(0, 2).toUpperCase()}</span><div><b>{data.user.displayName}</b><small>{data.user.portalRole.replaceAll("_", " ")}</small></div><button onClick={logout}>↗</button></div>
       </aside>
       <section className="admin-main">
-        <header className="admin-topbar no-print"><button className="admin-menu-trigger" onClick={() => setMobileNavOpen(true)} aria-label={tr(locale, "Open navigation", "فتح القائمة")}>☰</button><div><span>{tr(locale, "ADMIN WORKSPACE", "مساحة إدارة المتجر")}</span><b>{locale === "ar" ? navigation.find((item) => item.id === activeView)?.labelAr : navigation.find((item) => item.id === activeView)?.label}</b></div><div className="admin-top-actions"><div className="language-switch" aria-label="Language"><button className={locale === "en" ? "active" : ""} onClick={() => changeLocale("en")}>EN</button><button className={locale === "ar" ? "active" : ""} onClick={() => changeLocale("ar")}>ع</button></div><div className={`admin-role ${data.user.portalRole}`}>{data.user.portalRole.replaceAll("_", " ")}</div></div></header>
+        <header className="admin-topbar no-print"><button className="admin-menu-trigger" onClick={() => setMobileNavOpen(true)} aria-label={tr(locale, "Open navigation", "فتح القائمة")}>☰</button><div><span>{tr(locale, "ADMIN WORKSPACE", "مساحة إدارة المتجر")}</span><b>{locale === "ar" ? navigation.find((item) => item.id === activeView)?.labelAr : navigation.find((item) => item.id === activeView)?.label}</b></div><div className="admin-top-actions"><div className="admin-notification-center"><button className="admin-notification-trigger" aria-label={tr(locale,"Open notifications","فتح الإشعارات")} onClick={() => setNotificationOpen((open) => !open)}>🔔{unreadCount > 0 && <b>{unreadCount > 99 ? "99+" : unreadCount}</b>}</button>{notificationOpen && <section className="admin-notification-panel"><header><div><b>{tr(locale,"Staff activity","نشاط الموظفين")}</b><span>{unreadCount} {tr(locale,"unread","غير مقروء")}</span></div>{unreadCount > 0 && <button onClick={() => void markAllNotificationsRead()}>{tr(locale,"Mark all read","تحديد الكل كمقروء")}</button>}</header><div>{notifications.map((notification) => <button key={notification.id} className={notification.isRead ? "read" : "unread"} onClick={() => void openNotification(notification)}><i>{notification.eventType.startsWith("order") ? "▧" : notification.eventType.startsWith("expense") ? "↘" : "!"}</i><span><b>{notification.title}</b><p>{notification.message}</p><small>{notification.actorName} · {new Intl.DateTimeFormat(locale === "ar" ? "ar-SA" : "en-SA", { dateStyle: "medium", timeStyle: "short", timeZone: "Asia/Riyadh" }).format(new Date(notification.createdAt))}</small></span>{!notification.isRead && <em />}</button>)}{!notifications.length && <p className="notification-empty">{tr(locale,"No staff activity yet.","لا يوجد نشاط للموظفين حتى الآن.")}</p>}</div></section>}</div><div className="language-switch" aria-label="Language"><button className={locale === "en" ? "active" : ""} onClick={() => changeLocale("en")}>EN</button><button className={locale === "ar" ? "active" : ""} onClick={() => changeLocale("ar")}>ع</button></div><div className={`admin-role ${data.user.portalRole}`}>{data.user.portalRole.replaceAll("_", " ")}</div></div></header>
         {error && <div className="admin-alert">{error}</div>}
         {activeView === "dashboard" && <AnalyticsDashboard data={data} locale={locale} />}
         {activeView === "reports" && <Reports user={data.user} initialOrders={data.recentOrders} initialRange={data.reportRange} initialTotal={data.reportTotal} initialSummary={data.reportSummary} onChanged={load} />}

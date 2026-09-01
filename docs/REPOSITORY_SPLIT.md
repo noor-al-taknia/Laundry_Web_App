@@ -1,6 +1,6 @@
 # Repository split runbook
 
-The folders are intended as ten repository roots: two portals, seven services,
+The folders are intended as eleven repository roots: two portals, eight services,
 and contracts.
 
 ## Order
@@ -10,7 +10,7 @@ and contracts.
 3. Extract Settings, Catalog and Customer; verify row counts and checksums.
 4. Extract Orders and Expenses. Dual-write through an outbox during cutover;
    portals must not independently write old and new APIs.
-5. Backfill Reporting, then begin event consumption.
+5. Backfill Reporting and Notification, then begin idempotent event consumption.
 6. Extract Office/Admin, replace preview-relative imports with the contracts/UI
    packages, and point BFF routes at service bindings.
 7. Observe errors, event lag, token uniqueness and invoice sums before retiring
@@ -32,4 +32,3 @@ and contracts.
 - Apply migrations in local, staging and production order.
 - Verify `/health` and `/ready`.
 - Grant least-privilege service bindings and distinct production credentials.
-

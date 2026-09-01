@@ -202,6 +202,19 @@ const schemaStatements = [
     completed_by INTEGER REFERENCES users(id) ON DELETE RESTRICT,
     completed_at TEXT
   )`,
+  `CREATE TABLE IF NOT EXISTS admin_notifications (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    recipient_user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    actor_user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE RESTRICT,
+    event_type TEXT NOT NULL,
+    title TEXT NOT NULL,
+    message TEXT NOT NULL,
+    resource_type TEXT NOT NULL DEFAULT '',
+    resource_id TEXT NOT NULL DEFAULT '',
+    is_read INTEGER NOT NULL DEFAULT 0 CHECK(is_read IN (0,1)),
+    read_at TEXT,
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+  )`,
   "CREATE INDEX IF NOT EXISTS categories_active_sort_idx ON categories(is_active, sort_order)",
   "CREATE INDEX IF NOT EXISTS services_category_active_idx ON services(category_id, is_active, sort_order)",
   "CREATE INDEX IF NOT EXISTS service_prices_current_idx ON service_prices(service_id, effective_from, effective_to)",
@@ -218,6 +231,8 @@ const schemaStatements = [
   "CREATE INDEX IF NOT EXISTS permission_requests_task_resource_idx ON permission_requests(task, resource_type, resource_id, status)",
   "CREATE INDEX IF NOT EXISTS password_resets_status_idx ON password_reset_requests(status, requested_at)",
   "CREATE INDEX IF NOT EXISTS staff_debts_staff_status_idx ON staff_debts(staff_user_id, status)",
+  "CREATE INDEX IF NOT EXISTS admin_notifications_recipient_read_idx ON admin_notifications(recipient_user_id, is_read, created_at)",
+  "CREATE INDEX IF NOT EXISTS admin_notifications_resource_idx ON admin_notifications(resource_type, resource_id)",
 ];
 
 async function ensureCompatibilityColumns() {

@@ -444,3 +444,36 @@ export const passwordResetRequests = sqliteTable(
   },
   (table) => [index("password_resets_status_idx").on(table.status, table.requestedAt)],
 );
+
+export const adminNotifications = sqliteTable(
+  "admin_notifications",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    recipientUserId: integer("recipient_user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    actorUserId: integer("actor_user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "restrict" }),
+    eventType: text("event_type").notNull(),
+    title: text("title").notNull(),
+    message: text("message").notNull(),
+    resourceType: text("resource_type").notNull().default(""),
+    resourceId: text("resource_id").notNull().default(""),
+    isRead: integer("is_read", { mode: "boolean" }).notNull().default(false),
+    readAt: text("read_at"),
+    createdAt: text("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+  },
+  (table) => [
+    index("admin_notifications_recipient_read_idx").on(
+      table.recipientUserId,
+      table.isRead,
+      table.createdAt,
+    ),
+    index("admin_notifications_resource_idx").on(
+      table.resourceType,
+      table.resourceId,
+    ),
+    check("admin_notifications_read_check", sql`${table.isRead} IN (0, 1)`),
+  ],
+);
