@@ -2451,6 +2451,7 @@ label {
 .order-edit-grid { display: grid; gap: 12px; grid-template-columns: repeat(3, 1fr); padding: 15px; }
 .order-edit-grid label { color: #52647f; display: grid; font-size: 10px; font-weight: 750; gap: 5px; }
 .order-edit-grid input, .order-edit-grid select, .order-edit-grid textarea { border: 1px solid #cfd9e8; border-radius: 8px; color: #14213d; font: inherit; font-size: 12px; padding: 9px; width: 100%; }
+.order-edit-grid label > small { color: #64748b; font-size: 9px; font-weight: 500; line-height: 1.35; }
 .order-edit-grid .wide { grid-column: 1 / -1; }
 .order-edit-grid textarea { min-height: 58px; resize: vertical; }
 .order-edit-grid .detail-cash-check { align-items: center; display: grid; gap: 8px; grid-template-columns: 19px 1fr; padding-top: 18px; }

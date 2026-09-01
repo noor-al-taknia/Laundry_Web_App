@@ -27,6 +27,7 @@ Every new bill also requires an active staff selection. Admin creates the staff 
 Payment is presented as **Card/Cash**:
 
 - Card requires the receiving account: `STC` or `ANB`.
+- When an unpaid order is changed to Card during settlement, Card amount is pre-filled with the full bill total; staff may edit it to record a partial payment.
 - Cash records amount received and computed balance.
 - Staff may mark a balance settled and allocate the settlement between staff money and drawer/wallet money. The API validates that settlement components cannot exceed the remaining balance.
 - A non-zero **From staff** value automatically creates a company receivable linked to the exact staff member and order. Admin can review and settle this debt ledger; voiding an open test/order debt voids the corresponding receivable without deleting its audit trail.
