@@ -1,83 +1,49 @@
-# Laundry Operations Platform
+# Pearl Laundry — Public website
 
-Production-oriented bilingual laundry POS and administration system. The source is physically divided into a frontend tree and a backend tree so they can run in separate terminals and later become separate repositories.
+This repository now hosts the public laundry website. The former full application has been split into the three repositories listed below; prior Git history remains intact.
 
-## Folder layout
+The bilingual responsive website displays services/prices and shop contact/location from the backend's read-only /api/public/shop endpoint. It never connects directly to the database or requests customer/staff records. When the API is unavailable, it shows an honest unavailable message instead of invented prices.
 
-```text
-FE/
-  office-portal/       Counter sales, printing, expenses and collections
-  admin-portal/        Responsive owner/technical administration portal
-  app/                 Frontend composition and backend proxy
-  contracts/           Frontend API types
-BE/
-  platform-api/        Runnable compatibility API and database migrations
-  services/            Eight independently owned target microservices
-  contracts/           Backend contract package
-app/                   Thin combined-host deployment adapter only
-docs/                  Architecture, split and CSV guidance
-```
+The message form sends to pearllaundrysupport@gmail.com. Configure SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS and SMTP_FROM in ignored .env.local, then set CONTACT_ENABLED=true. SMTP sending is disabled by default. No real test email is sent by automated tests. Gmail typically requires an app password for a suitable enabled account; do not paste credentials into Git, documentation or chat.
 
-Day-to-day development happens only in `FE/` and `BE/`. The small root `app/` adapter keeps the current single-site deployment compatible while the service extraction is completed.
+Messages have size/format checks, an origin check, honeypot and a conservative single-process request cap. Production must also have durable rate limiting at the reverse proxy/WAF, HTTPS and appropriate email/DNS configuration. Multi-instance abuse protection is not provided by the in-memory cap.
 
-## Run locally in two terminals
+Only the website runs at port 3002; it is not a billing portal.
 
-Requires Node.js 22.13 or later. Install once from the repository root:
+## Local setup
 
-```bash
-npm install
-```
+Use Node.js 24 LTS and npm. Each repository installs and runs independently.
 
-Terminal 1 — backend:
-
-```bash
-cd BE/platform-api
+```sh
+cd Laundry_Web_App
+npm ci
+npm run setup
 npm run dev
 ```
 
-Terminal 2 — frontend:
+Start the backend first, then the portals and website in separate terminals. BACKEND_URL is server-only and should point to the backend, normally http://127.0.0.1:4000.
 
-```bash
-cd FE
-npm run dev
-```
+| Folder | Purpose | Local URL |
+|---|---|---|
+| Laundry_Web_Portal | Staff / office billing | http://localhost:3000 |
+| Laundry_Web_Admin_Portal | Owner administration | http://localhost:3001 |
+| Laundry_Web_Portal_BE | API and database | http://localhost:4000 |
+| Laundry_Web_App | Public shop website | http://localhost:3002 |
 
-Open:
 
-- Office: `http://localhost:3000`
-- Admin: `http://localhost:3000/admin`
-- Backend API: `http://localhost:4000` (normally not opened directly)
+## Checks
 
-If a port is occupied, use the replacement URL printed by the terminal.
-
-## Development credentials
-
-| Role | Username | Password | Portal |
-|---|---|---|---|
-| Staff | `staff` | `Staff@123` | Office |
-| Shop admin | `admin` | `Admin@123` | Admin |
-| Technical super-admin | `superadmin` | `SuperAdmin@123` | Admin |
-
-These are development seeds. Change every password and configure a private `JWT_SECRET` of at least 32 random bytes before production.
-
-## Open from another device on the same Wi-Fi
-
-Both development commands listen on `0.0.0.0`. Find the frontend terminal's **Network** URL, such as `http://192.168.8.192:3000`, and enter that URL in Chrome on the second device. For Admin, append `/admin`. Do not use `localhost` on the second device: it refers to that second device itself.
-
-Both devices must be on the same non-guest Wi-Fi and the host firewall must allow Node.js. Keep both terminals open.
-
-## Quality checks
-
-```bash
+```sh
 npm run ci
 ```
 
-This validates frontend types/lint/build, backend types/lint/tests/build, and the combined deployment build. GitHub Actions runs the same command on `main` and `Dev`.
+GitHub Actions runs locked installation, type checking, lint, automated tests and a production build on Dev/main pushes and pull requests. A successful local build is not a deployment.
 
-## Documentation
+## Same Wi-Fi
 
-- [Developer and user implementation guide](./IMPLEMENTATION.md)
-- [Architecture and data ownership](./docs/ARCHITECTURE.md)
-- [Repository split runbook](./docs/REPOSITORY_SPLIT.md)
-- [CSV import rules](./docs/CSV_IMPORT.md)
-- [Simple portal user guide](./docs/PORTAL_USER_GUIDE.md)
+Development servers bind to 0.0.0.0. On the other device use http://YOUR_MAC_LAN_IP:3000 (office), :3001 (admin), or :3002 (website), never that device's localhost. Allow these ports through the Mac firewall only on a trusted network. The backend URL stays server-side; browsers use their portal's proxy. Set NEXT_PUBLIC_OFFICE_URL and NEXT_PUBLIC_ADMIN_URL to the LAN URLs if using cross-portal links, then restart/rebuild. Use HTTPS for real deployments.
+
+## Documentation and security
+
+See Docs/ARCHITECTURE.md and Docs/PORTAL_QUICK_GUIDE.md. Keep .env.local, .dev.vars, .wrangler, backups and identity/customer data out of Git. Templates contain placeholders only. Rotate secrets and configure backups before production.
+
