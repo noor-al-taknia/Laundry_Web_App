@@ -4,7 +4,7 @@ This repository now hosts the public laundry website. The former full applicatio
 
 The bilingual responsive website displays services/prices and shop contact/location from the backend's read-only /api/public/shop endpoint. It never connects directly to the database or requests customer/staff records. When the API is unavailable, it shows an honest unavailable message instead of invented prices.
 
-The message form sends to pearllaundrysupport@gmail.com. Configure SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS and SMTP_FROM in ignored .env.local, then set CONTACT_ENABLED=true. SMTP sending is disabled by default. No real test email is sent by automated tests. Gmail typically requires an app password for a suitable enabled account; do not paste credentials into Git, documentation or chat.
+The message form sends to pearllaundrysupport@gmail.com. Configure SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS and SMTP_FROM in ignored .env.local, then set CONTACT_ENABLED=true. The form uses a three-second success/error toast. SMTP sending is disabled by default in `.env.example`. No real test email is sent by automated tests. Gmail typically requires an app password for a suitable enabled account; do not paste credentials into Git, documentation or chat.
 
 Messages have size/format checks, an origin check, honeypot and a conservative single-process request cap. Production must also have durable rate limiting at the reverse proxy/WAF, HTTPS and appropriate email/DNS configuration. Multi-instance abuse protection is not provided by the in-memory cap.
 
@@ -46,4 +46,3 @@ Development servers bind to 0.0.0.0. On the other device use http://YOUR_MAC_LAN
 ## Documentation and security
 
 See Docs/ARCHITECTURE.md and Docs/PORTAL_QUICK_GUIDE.md. Keep .env.local, .dev.vars, .wrangler, backups and identity/customer data out of Git. Templates contain placeholders only. Rotate secrets and configure backups before production.
-
