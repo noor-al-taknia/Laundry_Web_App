@@ -1,2 +1,1 @@
-export default function Loading(){return <main className="wrap" aria-busy="true" style={{paddingBlock:80}}><p>Loading Pearl Laundry…</p><div style={{height:180,background:"#edf3ff",borderRadius:20}}/></main>;}
-
+export default function Loading(){return <main className="laundry-loader" aria-live="polite" aria-label="Loading Pearl Laundry"><div className="loader-bubbles" aria-hidden="true">{Array.from({length:18},(_,index)=><i key={index}/>)}</div><div className="loader-machine" aria-hidden="true"><span/><div><i/></div></div><strong>PEARL LAUNDRY</strong><p>Fresh care is on the way…</p></main>}

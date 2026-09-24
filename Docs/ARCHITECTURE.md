@@ -24,7 +24,12 @@ Hotels and walk-in billing use separate tables. Monetary values, optimistic vers
 
 Public contact messages are validated and sent as plain text, using a fixed configured sender and recipient with the visitor as Reply-To. No credentials are client-exposed. Deploy behind HTTPS and trusted ingress with durable rate limiting, monitoring and encrypted backups.
 
+## Public-site motion and loading
+
+The landing page uses Framer Motion only for progressive entrance and service-card interactions. The laundry illustration, bubble effects and cursor-responsive parallax are CSS/DOM based, so there is no large video download or external media dependency. Motion is reduced automatically for visitors who enable the operating system's reduced-motion preference. The route loading state uses the same lightweight animated laundry machine and bubble theme.
+
+The public catalogue is a walk-in digital menu. It shows a configured walk-in price when one exists and otherwise uses `Price on request`; it never exposes hotel-specific rates. Hotel catalogue and price selection remain in the protected hotel billing flow. The website also includes `/maintenance`, `/offline`, and a custom 404 page. The in-page offline notice works after the page has loaded; full offline navigation requires a future service-worker/PWA deployment.
+
 ## Local state and migration
 
 The original active shop database is preserved when moved to the backend's ignored .wrangler folder. Old monorepo files and attachments are archived outside the four-folder parent. Never commit that archive. Existing accounts retain their passwords; no customer data is shipped in repository seed files.
-
