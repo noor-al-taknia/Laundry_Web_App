@@ -1,0 +1,12 @@
+.git
+.github
+.next
+.vinext
+dist
+node_modules
+coverage
+.env*
+!.env.example
+*.log
+*.sqlite*
+*.db*
